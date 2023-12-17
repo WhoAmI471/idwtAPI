@@ -11,18 +11,24 @@ import calendar
 host = socket.gethostname()
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
 
 @app.route('/getDailyAdvice', methods=['GET'])
 def get_daily_advice():
     user_id = request.args.get('userId')
     
-    with open('backend/advices.json', 'r', encoding='utf-8') as file:
+    with open('advices.json', 'r', encoding='utf-8') as file:
         advices_data = json.load(file)
         advices_data = advices_data['advices']
         
-    with open('backend/user_affairs.json', 'r', encoding='utf-8') as file:
+    with open('user_affairs.json', 'r', encoding='utf-8') as file:
         user_affairs = json.load(file)
         index = user_affairs[user_id]['index']
         
@@ -33,10 +39,10 @@ def get_daily_advice():
 def get_next_advice():
     user_id = request.args.get('userId')
     
-    with open('backend/user_affairs.json', 'r', encoding='utf-8') as file:
+    with open('user_affairs.json', 'r', encoding='utf-8') as file:
         user_affairs = json.load(file)
     
-    with open('backend/advices.json', 'r', encoding='utf-8') as file:
+    with open('advices.json', 'r', encoding='utf-8') as file:
         advices_data = json.load(file)
         advices_data = advices_data['advices']
 
@@ -54,8 +60,6 @@ def get_next_advice():
         print(list(range(len(advices_data))))
         random.shuffle(user_affairs[user_id]['advices'])
 
-
-
     index = user_affairs[user_id]['index']
 
     if (len(user_affairs[user_id]['advices']) > 0):
@@ -66,7 +70,7 @@ def get_next_advice():
             index = user_affairs[user_id]['index'] + 1
 
         print(user_affairs)
-        with open('backend/user_affairs.json', 'w', encoding='utf-8') as file:
+        with open('user_affairs.json', 'w', encoding='utf-8') as file:
             json.dump(user_affairs, file, ensure_ascii=False, indent=4)
 
         return jsonify(advices_data[user_affairs[user_id]['advices'][index]])
@@ -80,11 +84,11 @@ def get_user_affairs():
     user_id = request.args.get('userId')
 
     
-    with open('backend/advices.json', 'r', encoding='utf-8') as file:
+    with open('advices.json', 'r', encoding='utf-8') as file:
         advices = json.load(file)
 
 
-    with open('backend/user_affairs.json', 'r', encoding='utf-8') as file:
+    with open('user_affairs.json', 'r', encoding='utf-8') as file:
         user_affairs = json.load(file)
 
 
@@ -110,7 +114,7 @@ def get_user_affairs():
     if date not in user_affairs[user_id]['affairs']:
         user_affairs[user_id]['affairs'][date] = []
 
-    with open('backend/user_affairs.json', 'w', encoding='utf-8') as file:
+    with open('user_affairs.json', 'w', encoding='utf-8') as file:
         json.dump(user_affairs, file, ensure_ascii=False, indent=4)
 
     return jsonify(user_affairs[user_id])  # Отправляем ответ клиенту в формате JSON.
@@ -121,7 +125,7 @@ def get_category_stats():
     user_id = request.args.get('userId')
     date_range = request.args.get('dateRange')
 
-    with open('backend/user_affairs.json', 'r', encoding='utf-8') as file:
+    with open('user_affairs.json', 'r', encoding='utf-8') as file:
         user_affairs = json.load(file)
 
     if user_id not in user_affairs:
@@ -191,7 +195,7 @@ def add_affair():
     user_id = request.args.get('userId')
 
     date = request.args.get('date')
-    with open('backend/user_affairs.json', 'r', encoding='utf-8') as file:
+    with open('user_affairs.json', 'r', encoding='utf-8') as file:
         data = json.load(file)
 
     if date in data[user_id]['affairs']:
@@ -200,7 +204,7 @@ def add_affair():
         data[user_id]['affairs'] = {date:[new_affair]}
         print(data[user_id]['affairs'])
 
-    with open('backend/user_affairs.json', 'w', encoding='utf-8') as file:
+    with open('user_affairs.json', 'w', encoding='utf-8') as file:
         json.dump(data, file, ensure_ascii=False, indent=4)  # Сохраняем обновленные данные в файл JSON
 
     return jsonify({'message': 'New affair added successfully'})  # Отправляем ответ клиенту
@@ -211,7 +215,7 @@ def remove_affair():
     user_id = request.args.get('userId')
     id_affair = (request.get_json())["id"]  # Получаем данные из тела запроса
     print(id_affair)
-    with open('backend/user_affairs.json', 'r', encoding='utf-8') as file:
+    with open('user_affairs.json', 'r', encoding='utf-8') as file:
         data = json.load(file)
         user_affairs = data.get(str(user_id), {}).get('affairs', {})
         for date, affairs in user_affairs.items():
@@ -219,7 +223,7 @@ def remove_affair():
                 if affair["id"] == id_affair:
                     affairs.remove(affair)
 
-    with open('backend/user_affairs.json', 'w', encoding='utf-8') as file:
+    with open('user_affairs.json', 'w', encoding='utf-8') as file:
         json.dump(data, file, ensure_ascii=False, indent=4)  # Сохраняем обновленные данные в файл JSON
 
     return jsonify({'message': 'Affair removed successfully'})  # Отправляем ответ клиенту
